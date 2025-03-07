@@ -1,0 +1,55 @@
+Parameters:
+  DBInstanceClass:
+    Description: RDS instance class.
+    Type: String
+    Default: db.t2.micro
+    AllowedValues:
+    - db.t2.micro
+    - db.t2.small
+    - db.t2.medium
+    - db.m3.medium
+    - db.m3.large
+    - db.m3.xlarge
+    - db.m3.2xlarge
+  DBSubnetGroupName:
+    Description: Subnet group for the RDS instance.
+    Type: AWS::RDS::DBSubnetGroup::Name
+  VPCSecurityGroupIDs:
+    Description: Security group IDs for the RDS instance.
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  SecretName:
+    Description: The name of the secret in AWS Secrets Manager that contains the database credentials.
+    Type: String
+
+Resources:
+  MyRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      MasterUsername: !Sub '{{resolve:secretsmanager:${SecretName}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${SecretName}:SecretString:password}}'
+      DBSubnetGroupName: !Ref DBSubnetGroupName
+      VPCSecurityGroups: !Ref VPCSecurityGroupIDs
+      AllocatedStorage: 20
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - DBSubnetGroupName
+          - VPCSecurityGroupIDs
+      - Label:
+          default: "RDS Configuration"
+        Parameters:
+          - DBInstanceClass
+          - SecretName
+    ParameterLabels:
+      DBSubnetGroupName:
+        default: "Which subnet group should this be deployed to?"
+      VPCSecurityGroupIDs:
+        default: "Security group IDs for the RDS instance"
+      SecretName:
+        default: "Name of the secret in AWS Secrets Manager"
